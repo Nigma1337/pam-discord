@@ -1,0 +1,35 @@
+pam-discord
+========
+
+A PAM discord oauth module built using pam-rs
+
+# Prerequisites
+
+You need some libraries before you build like libpam and libssl.
+
+If you're going to build on Ubuntu, just run this:
+
+```
+sudo apt-get install -y build-essential libpam0g-dev libpam0g libssl-dev
+```
+
+# Building
+
+Just use `cargo build`.
+
+# Installing
+
+Just use `just install`.
+
+# Usage
+
+You need to move the build product to a folder where PAM is looking for modules.
+
+If you're using Ubuntu you can move `libpam_http.so` to `/lib/security`.
+After doing so you need to make sure it has proper permissions: `sudo chmod 755 /lib/security/libpam_http.so`.
+Then you can place a configuration file in `/etc/pam.d/`. It can look something like this:
+
+```
+auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret> 
+account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
+```

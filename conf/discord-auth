@@ -1,0 +1,2 @@
+auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
+account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
