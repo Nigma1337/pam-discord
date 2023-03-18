@@ -1,7 +1,3 @@
-extern crate pam;
-extern crate tokio;
-extern crate hyper;
-
 use hyper::{Request, Response, Body};
 use hyper::service::{make_service_fn, service_fn};
 use pam::constants::{PamFlag, PamResultCode, PAM_RADIO_TYPE, PAM_PROMPT_ECHO_OFF, PAM_TEXT_INFO, PAM_ERROR_MSG, PAM_SILENT, PAM_BINARY_PROMPT};
@@ -19,6 +15,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use std::convert::Infallible;
 use tokio::runtime::Runtime;
+use url::form_urlencoded::parse;
+
 struct PamDiscord;
 pam::pam_hooks!(PamDiscord);
 
@@ -26,7 +24,8 @@ const API_ENDPOINT: &str = "https://discord.com/api";
 
 impl PamHooks for PamDiscord {
     // This function performs the task of authenticating the user.
-    fn sm_authenticate(pamh: &mut PamHandle, args: Vec<&CStr>, _flags: PamFlag) -> PamResultCode {        
+    fn sm_authenticate(pamh: &mut PamHandle, args: Vec<&CStr>, _flags: PamFlag) -> PamResultCode { 
+        println!("test");
         let args: Vec<_> = args
             .iter()
             .map(|s| s.to_string_lossy())
@@ -39,16 +38,28 @@ impl PamHooks for PamDiscord {
             })
             .collect();
 
-        let client_id: &str = match args.get("client_id") {
-            Some(client_id) => client_id,
-            None => return PamResultCode::PAM_AUTH_ERR,
-        };
-        
         let client_secret: &str = match args.get("client_secret") {
             Some(client_id) => client_id,
             None => return PamResultCode::PAM_AUTH_ERR,
         };
-
+        let state: &&str = &"unknown";
+        let port: u16 = 10050;
+        unsafe{
+            let state = match pamh.get_data::<&str>("state") {
+                Ok(state) => state,
+                Err(err) => {
+                    println!("Couldn't get state");
+                    return err;
+                }
+            };
+            let port = match pamh.get_data::<u16>("port") {
+                Ok(port) => port,
+                Err(err) => {
+                    println!("Couldn't get port!");
+                    return err;
+                }
+            };
+        };
         let conv = match pamh.get_item::<Conv>() {
             Ok(Some(conv)) => conv,
             Ok(None) => {
@@ -59,27 +70,9 @@ impl PamHooks for PamDiscord {
                 return err;
             }
         };
-        pam_try!(conv.send(PAM_TEXT_INFO, "HELP ME"));
-        let rhost = match pamh.get_item::<RHost>() {
-            Ok(Some(rhost)) => rhost,
-            Ok(None) => {
-                unreachable!("No rhost available");
-            }
-            Err(err) => {
-                println!("Couldn't get pam_rhost");
-                return err;
-            }
-        };
-        pam_try!(conv.send(PAM_TEXT_INFO, "fart ME"));
         let rt = Runtime::new().unwrap();
-        pam_try!(conv.send(PAM_TEXT_INFO, "fart"));
-        //pam_try!(conv.send(PAM_RADIO_TYPE, "ma"));
-        let authorize_url = format!("{}/oauth2/authorize?response_type=code&client_id={}&scope=identify&state=fart", API_ENDPOINT, client_id);
-        pam_try!(conv.send(PAM_ERROR_MSG, &authorize_url));
-        
-        // Flush moment
-        pam_try!(conv.send(PAM_RADIO_TYPE, &authorize_url));
-        let gang = rt.block_on(generate_new_token(client_id, "fart"));
+        let gang = rt.block_on(generate_new_token(state, port));
+        pam_try!(conv.send(PAM_TEXT_INFO, gang));
         PamResultCode::PAM_SUCCESS
     }
 
@@ -94,8 +87,8 @@ impl PamHooks for PamDiscord {
     }
 }
 
-async fn generate_new_token(client_id: &str, state: &str) -> (String, String) {
-    let addr = ([0, 0, 0, 0], 8312).into();
+async fn generate_new_token(state: &str, port: u16) -> (String, String) {
+    let addr = ([0, 0, 0, 0], port).into();
 
     let notify = Arc::new(Notify::new());
     let token = Arc::new(Mutex::new(None::<(String, String)>));
@@ -109,10 +102,23 @@ async fn generate_new_token(client_id: &str, state: &str) -> (String, String) {
                 Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
                     let notify = notify.clone();
                     let token = token.clone();
+                    let params: HashMap<String, String> = req
+                    .uri()
+                    .query()
+                    .map(|v| {
+                        url::form_urlencoded::parse(v.as_bytes())
+                            .into_owned()
+                            .collect()
+                    })
+                    .unwrap_or_else(HashMap::new);
+                    let test = match params.get("code") {
+                        Some(test) => test.to_string(),
+                        None => "jk,".to_string()
+                    };
                     async move {
                         // TODO: Parse URL and get token
                         Ok::<_, Infallible>(Response::new(Body::from(
-                            "Follow the link shown in your terminal",
+                            test,
                         )))
                     }
                 }))
@@ -123,7 +129,7 @@ async fn generate_new_token(client_id: &str, state: &str) -> (String, String) {
         .serve(make_svc)
         .with_graceful_shutdown(async move { tokio::select! {
           _ = notify.notified() => (),
-          _ = sleep(Duration::from_secs(60 * 5)) => (),
+          _ = sleep(Duration::from_secs(60 * 1)) => (),
         }});
     server.await.unwrap();
 
