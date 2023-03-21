@@ -30,6 +30,15 @@ After doing so you need to make sure it has proper permissions: `sudo chmod 755 
 Then you can place a configuration file in `/etc/pam.d/`. It can look something like this:
 
 ```
-auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret> 
-account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
+auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>  guild=<guild id> role=<role id>
+account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret> guild=<guild id> role=<role id>
+session    include      system-local-login
+```
+
+To use with sshd, you'll need a patched version of openssh, located [here](https://github.com/Nigma1337/openssh-portable)
+and built with these commands:
+```
+autoreconf
+./configure --with-pam
+make install
 ```

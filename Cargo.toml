@@ -1,2 +1,17 @@
-[workspace]
-members = ["discord", "metadata"]
+[package]
+name = "pam-discord"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "pam_discord"
+crate-type = ["cdylib"]
+
+[dependencies]
+pam-bindings = { version = "0.1.0" }
+hyper = { version = "0.14.20", features = ["full"]}
+tokio = { version = "1.12.1", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+futures = { version = "0.3.21"}
+url = "2.3.1"
+json = "0.12.4"

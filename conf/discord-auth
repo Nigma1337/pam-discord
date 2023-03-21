@@ -1,2 +1,3 @@
-auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
-account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>
+auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>  guild=<guild id> role=<role id>
+account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret> guild=<guild id> role=<role id>
+session    include      system-local-login
