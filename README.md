@@ -25,8 +25,7 @@ Just use `just install`.
 
 You need to move the build product to a folder where PAM is looking for modules.
 
-If you're using Ubuntu you can move `pam_discord.so` to `/lib/security`.
-After doing so you need to make sure it has proper permissions: `sudo chmod 755 /lib/security/pam_discord.so`.
+If you're using Ubuntu you can move `libpam_discord.so` to `/lib/security`.
 Then you can place a configuration file in `/etc/pam.d/`. It can look something like this:
 
 ```

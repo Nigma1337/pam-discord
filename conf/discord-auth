@@ -1,3 +1,7 @@
+# You could use different ones here, with auth authenticating you're trying to login as a valid user and
+# account validating that you have the proper access perms, but its copied for simplicity sake
 auth sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret>  guild=<guild id> role=<role id>
 account sufficient pam_discord.so client_id=<client_id> client_secret=<client_secret> guild=<guild id> role=<role id>
+
+# Required to open the session for a local user
 session    include      system-local-login
