@@ -143,35 +143,24 @@ async fn generate_new_token(state: String, port: u16) -> String {
                     let token = token.clone();
                     let state = state.clone();
                     async move {
-                        let code = req
-                          .uri()
-                          .query()
-                          .map(|query|
-                            url::form_urlencoded::parse(query.as_bytes())
-                          )
-                          .and_then(|mut query|
-                            query.find(|(name, _)| *name == "code")
-                          )
-                          .map(|(_, code)| code.into_owned());
-                        let rstate = req
-                            .uri()
-                            .query()
-                            .map(|query|
-                              url::form_urlencoded::parse(query.as_bytes())
-                            )
-                            .and_then(|mut query|
-                              query.find(|(name, _)| *name == "state")
-                            )
-                            .map(|(_, rstate)| rstate.into_owned())
-                            .unwrap();
-                        if rstate != state {
+                        let parameters: HashMap<String, String> = req
+                        .uri()
+                        .query()
+                        .map(|v| {
+                            url::form_urlencoded::parse(v.as_bytes())
+                                .into_owned()
+                                .collect()
+                        })
+                        .unwrap_or_else(HashMap::new);
+                        let code = parameters.get("code");
+                        if parameters.get("state") != Some(&state) {
                             return Ok::<_, Infallible>(Response::new(Body::from(
                                 "Invalid CSRF token!",
                             )));
                         }
                         if let (Some(code), token) = (code, &mut *token.lock().await) {
                           notify.notify_one();
-                          *token = code;
+                          *token = code.to_string();
                         }
                         Ok::<_, Infallible>(Response::new(Body::from(
                             "fuck you",
@@ -220,20 +209,6 @@ async fn get_guild_member(access_token: &str, guild_id: &str) -> Result<GuildMem
     .await?;
     return Ok(res);
 }
-
-//// This `derive` requires the `serde` dependency.
-//#[derive(Deserialize)]
-//struct Ip {
-//    origin: String,
-//}
-//
-//let ip = reqwest::get("http://httpbin.org/ip")
-//    .await?
-//    .json::<Ip>()
-//    .await?;
-//
-//println!("ip: {}", ip.origin);
-//Erro
 
 pub fn verify_member(state: String, port: u16, client_id: &str, client_secret: &str, guild_id: &str, role: &str) -> Result<bool, Box<dyn Error>>{
     let rt = Runtime::new()?;
